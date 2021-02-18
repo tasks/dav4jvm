@@ -726,6 +726,47 @@ class DavResourceTest {
         assertTrue(called)
     }
 
+    @Test
+    fun testPropPatch() {
+        val url = sampleUrl()
+        val dav = DavResource(httpClient, url)
+        mockServer.enqueue(MockResponse()
+                .setResponseCode(207)
+                .setHeader("Content-Type", "application/xml; charset=utf-8")
+                .setBody("""
+                    <?xml version="1.0"?>
+                    <d:multistatus xmlns:d="DAV:">
+                        <d:response>
+                            <d:href>/calendars/121673412569121065134/1693418205575619338</d:href>
+                            <d:propstat>
+                                <d:prop>
+                                    <d:displayname />
+                                    <x1:calendar-color xmlns:x1="http://apple.com/ns/ical/" />
+                                </d:prop>
+                                <d:status>HTTP/1.1 200 OK</d:status>
+                            </d:propstat>
+                        </d:response>
+                    </d:multistatus>
+                """.trimIndent()))
+        var called = false
+
+        dav.proppatch("""
+            <?xml version='1.0' encoding='UTF-8' ?>
+            <propertyupdate xmlns="DAV:">
+                <set>
+                    <prop>
+                        <displayname>New name</displayname>
+                        <n0:calendar-color xmlns:n0="http://apple.com/ns/ical/">#212121FF</n0:calendar-color>
+                    </prop>
+                </set>
+            </propertyupdate>
+        """.trimIndent()) { response, _ ->
+            called = true
+            assertEquals(200, response.propstat.first().status.code)
+        }
+
+        assertTrue(called)
+    }
 
     @Test
     fun testFollowRedirects_302() {

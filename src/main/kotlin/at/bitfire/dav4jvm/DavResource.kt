@@ -346,6 +346,31 @@ open class DavResource @JvmOverloads constructor(
         }
     }
 
+    /**
+     * Sends a PROPPATCH request to this resource. Expects and processes a 207 Multi-Status response.
+     *
+     * Follows up to [MAX_REDIRECTS] redirects.
+     *
+     * @param xmlBody   resource properties to update
+     * @param callback  called for every XML response element in the Multi-Status response
+     *
+     * @throws IOException on I/O error
+     * @throws HttpException on HTTP error
+     * @throws DavException on HTTPS -> HTTP redirect
+     */
+    @Throws(IOException::class, HttpException::class)
+    fun proppatch(xmlBody: String, callback: DavResponseCallback) {
+        val rqBody = xmlBody.toRequestBody(MIME_XML)
+
+        followRedirects {
+            httpClient.newCall(Request.Builder()
+                    .method("PROPPATCH", rqBody)
+                    .url(location)
+                    .build()).execute()
+        }.use {
+            processMultiStatus(it, callback)
+        }
+    }
 
     // status handling
 
